@@ -1,4 +1,32 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# Environment variables
 .env
-venv
-test
-.vercel
+
+# IDE
+.vscode/
+.idea/
+
+# Testing
+test/
+.pytest_cache/
+
+# Deployment
+.vercel/
+*.md
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+*.db
+uploads/
+temp/
