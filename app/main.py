@@ -29,7 +29,7 @@ if settings.ALLOWED_ORIGINS:
     origins = [origin.strip().rstrip('/') for origin in settings.ALLOWED_ORIGINS.split(',') if origin.strip()]
 
 # Add common development origins if not in production
-if not origins or 'localhost' in str(origins):
+if 'localhost' in str(origins):
     origins.extend([
         "http://localhost:3000",
         "http://127.0.0.1:3000",
