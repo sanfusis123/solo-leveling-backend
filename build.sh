@@ -2,8 +2,11 @@
 # exit on error
 set -o errexit
 
+# Ensure we're using Python 3.10
+python --version
+
 # Upgrade pip
-pip install --upgrade pip
+python -m pip install --upgrade pip
 
 # Install dependencies
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
