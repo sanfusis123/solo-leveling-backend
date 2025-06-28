@@ -7,9 +7,28 @@
   PYTHON_VERSION = "3.9"
 
 [[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/api/:splat"
+  from = "/api/v1/*"
+  to = "/.netlify/functions/api/api/v1/:splat"
   status = 200
+  force = true
+
+[[redirects]]
+  from = "/health"
+  to = "/.netlify/functions/api/health"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/test-cors"
+  to = "/.netlify/functions/api/test-cors"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/"
+  to = "/.netlify/functions/api/"
+  status = 200
+  force = true
 
 [[redirects]]
   from = "/*"

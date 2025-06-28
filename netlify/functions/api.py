@@ -10,15 +10,18 @@ from mangum import Mangum
 from app.main import app
 
 # Create the handler for Netlify
-handler = Mangum(app, lifespan="off")
-
-# Netlify expects a specific function signature
-def handler_wrapper(event, context):
-    # Add base path for API Gateway compatibility
+def handler(event, context):
+    # Fix the path for Netlify Functions
     if 'path' in event:
-        # Remove /.netlify/functions/api prefix if present
-        path = event['path']
+        # Remove /.netlify/functions/api prefix
+        path = event.get('path', '/')
         if path.startswith('/.netlify/functions/api'):
-            event['path'] = path.replace('/.netlify/functions/api', '', 1) or '/'
+            event['path'] = path[22:] or '/'  # Remove the prefix
+        
+        # Also update rawPath if it exists
+        if 'rawPath' in event:
+            event['rawPath'] = event['path']
     
-    return handler(event, context)
+    # Create Mangum handler and process request
+    mangum_handler = Mangum(app, lifespan="off", api_gateway_base_path="/")
+    return mangum_handler(event, context)
