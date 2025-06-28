@@ -1,0 +1,7 @@
+{
+  "functions": [{
+    "path": "netlify/functions/api.py",
+    "name": "api",
+    "handler": "handler_wrapper"
+  }]
+}
