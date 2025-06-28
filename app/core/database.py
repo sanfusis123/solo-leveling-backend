@@ -31,7 +31,7 @@ async def connect_to_database():
         )
     
     db.database = db.client[settings.DATABASE_NAME]
-    print(f"Connected to MongoDB at {settings.MONGODB_URL}")
+    print(f"Connected to MongoDB at {settings.MONGODB_URL[-40:]}")
 
 async def close_database_connection():
     if db.client:
