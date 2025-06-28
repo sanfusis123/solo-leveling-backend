@@ -21,10 +21,9 @@ class FlashcardDeck(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
-    model_config = {
-        "arbitrary_types_allowed": True,
-        "json_encoders": {ObjectId: str}
-    }
+    class Config:
+        arbitrary_types_allowed = True
+        json_encoders = {ObjectId: str}
 
 class Flashcard(BaseModel):
     id: Optional[str] = None
@@ -44,7 +43,6 @@ class Flashcard(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
-    model_config = {
-        "arbitrary_types_allowed": True,
-        "json_encoders": {ObjectId: str}
-    }
+    class Config:
+        arbitrary_types_allowed = True
+        json_encoders = {ObjectId: str}
