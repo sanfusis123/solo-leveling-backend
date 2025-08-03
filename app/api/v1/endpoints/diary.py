@@ -22,6 +22,26 @@ MOOD_MAPPING = {
 # Reverse mapping for sending to frontend
 MOOD_REVERSE_MAPPING = {v: k for k, v in MOOD_MAPPING.items()}
 
+class DiaryEntryResponse(BaseModel):
+    id: Optional[str] = None
+    user_id: str
+    date: date
+    title: Optional[str] = None
+    content: str
+    mood: Optional[str] = None  # Frontend mood format
+    activities: List[str] = []
+    accomplishments: List[str] = []
+    challenges: List[str] = []
+    gratitude: List[str] = []
+    tomorrow_goals: List[str] = []
+    tags: List[str] = []
+    weather: Optional[str] = None
+    location: Optional[str] = None
+    photos: List[str] = []
+    is_private: bool = True
+    created_at: datetime
+    updated_at: datetime
+
 class DiaryEntryCreate(BaseModel):
     date: date
     title: Optional[str] = None
@@ -49,7 +69,7 @@ class DiaryEntryUpdate(BaseModel):
     weather: Optional[str] = None
     location: Optional[str] = None
 
-@router.post("/entries", response_model=DiaryEntryModel, status_code=status.HTTP_201_CREATED)
+@router.post("/entries", response_model=DiaryEntryResponse, status_code=status.HTTP_201_CREATED)
 async def create_entry(
     entry_in: DiaryEntryCreate,
     current_user: UserModel = Depends(get_current_active_user)
@@ -87,16 +107,22 @@ async def create_entry(
     entry_dict["id"] = str(result.inserted_id)
     del entry_dict["_id"]
     
-    # Map backend mood to frontend mood for response
-    if entry_dict.get("mood") and entry_dict["mood"] in MOOD_REVERSE_MAPPING:
-        entry_dict["mood"] = MOOD_REVERSE_MAPPING[entry_dict["mood"]]
+    # Create DiaryEntryModel first to validate
+    diary_entry = DiaryEntryModel(**entry_dict)
     
-    # Keep date as ISO string for response
-    entry_dict["date"] = entry_in.date.isoformat()
+    # Convert to response format with frontend mood
+    response_dict = diary_entry.model_dump()
+    response_dict["date"] = entry_in.date  # Keep as date object
+    if response_dict.get("mood"):
+        # Convert backend mood to frontend format
+        backend_mood = response_dict["mood"]
+        if hasattr(backend_mood, 'value'):
+            backend_mood = backend_mood.value
+        response_dict["mood"] = MOOD_REVERSE_MAPPING.get(backend_mood, backend_mood)
     
-    return DiaryEntryModel(**entry_dict)
+    return DiaryEntryResponse(**response_dict)
 
-@router.get("/entries", response_model=List[DiaryEntryModel])
+@router.get("/entries", response_model=List[DiaryEntryResponse])
 async def get_entries(
     start_timestamp: Optional[int] = Query(None, description="Unix timestamp for start date"),
     end_timestamp: Optional[int] = Query(None, description="Unix timestamp for end date"),
@@ -133,16 +159,37 @@ async def get_entries(
         entry["id"] = str(entry["_id"])
         del entry["_id"]
         
-        # Map backend mood to frontend mood
-        if entry.get("mood") and entry["mood"] in MOOD_REVERSE_MAPPING:
-            entry["mood"] = MOOD_REVERSE_MAPPING[entry["mood"]]
+        # Handle mood mapping - ensure we have a valid backend mood for the model
+        if entry.get("mood"):
+            if entry["mood"] in ["very_bad", "bad", "neutral", "good", "excellent"]:
+                # Already in valid backend format, keep it
+                pass
+            elif entry["mood"] in MOOD_MAPPING:
+                # Frontend format (like "amazing"), convert to backend
+                entry["mood"] = MOOD_MAPPING[entry["mood"]]
+            else:
+                # Unknown mood, default to neutral
+                entry["mood"] = "neutral"
         
         # Keep date as ISO string for frontend compatibility
-        entries.append(DiaryEntryModel(**entry))
+        
+        # Create DiaryEntryModel and then convert to response
+        diary_entry = DiaryEntryModel(**entry)
+        
+        # Convert to response format with frontend mood
+        response_dict = diary_entry.model_dump()
+        if response_dict.get("mood"):
+            # Convert backend mood to frontend format
+            backend_mood = response_dict["mood"]
+            if hasattr(backend_mood, 'value'):
+                backend_mood = backend_mood.value
+            response_dict["mood"] = MOOD_REVERSE_MAPPING.get(backend_mood, backend_mood)
+        
+        entries.append(DiaryEntryResponse(**response_dict))
     
     return entries
 
-@router.get("/entries/{entry_date}", response_model=DiaryEntryModel)
+@router.get("/entries/{entry_date}", response_model=DiaryEntryResponse)
 async def get_entry_by_date(
     entry_date: date,
     current_user: UserModel = Depends(get_current_active_user)
@@ -161,14 +208,33 @@ async def get_entry_by_date(
     entry["id"] = str(entry["_id"])
     del entry["_id"]
     
-    # Map backend mood to frontend mood
-    if entry.get("mood") and entry["mood"] in MOOD_REVERSE_MAPPING:
-        entry["mood"] = MOOD_REVERSE_MAPPING[entry["mood"]]
+    # Handle mood mapping - ensure we have a valid backend mood for the model
+    if entry.get("mood"):
+        if entry["mood"] in ["very_bad", "bad", "neutral", "good", "excellent"]:
+            # Already in valid backend format, keep it
+            pass
+        elif entry["mood"] in MOOD_MAPPING:
+            # Frontend format (like "amazing"), convert to backend
+            entry["mood"] = MOOD_MAPPING[entry["mood"]]
+        else:
+            # Unknown mood, default to neutral
+            entry["mood"] = "neutral"
     
-    # Keep date as ISO string for frontend compatibility
-    return DiaryEntryModel(**entry)
+    # Create DiaryEntryModel and then convert to response
+    diary_entry = DiaryEntryModel(**entry)
+    
+    # Convert to response format with frontend mood
+    response_dict = diary_entry.model_dump()
+    if response_dict.get("mood"):
+        # Convert backend mood to frontend format
+        backend_mood = response_dict["mood"]
+        if hasattr(backend_mood, 'value'):
+            backend_mood = backend_mood.value
+        response_dict["mood"] = MOOD_REVERSE_MAPPING.get(backend_mood, backend_mood)
+    
+    return DiaryEntryResponse(**response_dict)
 
-@router.put("/entries/{entry_date}", response_model=DiaryEntryModel)
+@router.put("/entries/{entry_date}", response_model=DiaryEntryResponse)
 async def update_entry(
     entry_date: date,
     entry_update: DiaryEntryUpdate,
@@ -208,13 +274,31 @@ async def update_entry(
     entry["id"] = str(entry["_id"])
     del entry["_id"]
     
-    # Map backend mood to frontend mood
-    if entry.get("mood") and entry["mood"] in MOOD_REVERSE_MAPPING:
-        entry["mood"] = MOOD_REVERSE_MAPPING[entry["mood"]]
+    # Handle mood mapping - ensure we have a valid backend mood for the model
+    if entry.get("mood"):
+        if entry["mood"] in ["very_bad", "bad", "neutral", "good", "excellent"]:
+            # Already in valid backend format, keep it
+            pass
+        elif entry["mood"] in MOOD_MAPPING:
+            # Frontend format (like "amazing"), convert to backend
+            entry["mood"] = MOOD_MAPPING[entry["mood"]]
+        else:
+            # Unknown mood, default to neutral
+            entry["mood"] = "neutral"
     
-    # Keep date as ISO string for frontend compatibility
+    # Create DiaryEntryModel and then convert to response
+    diary_entry = DiaryEntryModel(**entry)
     
-    return DiaryEntryModel(**entry)
+    # Convert to response format with frontend mood
+    response_dict = diary_entry.model_dump()
+    if response_dict.get("mood"):
+        # Convert backend mood to frontend format
+        backend_mood = response_dict["mood"]
+        if hasattr(backend_mood, 'value'):
+            backend_mood = backend_mood.value
+        response_dict["mood"] = MOOD_REVERSE_MAPPING.get(backend_mood, backend_mood)
+    
+    return DiaryEntryResponse(**response_dict)
 
 @router.get("/mood-summary", response_model=dict)
 async def get_mood_summary(
